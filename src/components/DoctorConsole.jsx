@@ -449,7 +449,9 @@ export default function DoctorConsole() {
             </button>
           </form>
 
-          <p className={`summary-status tone-${authStatus.tone}`}>{authStatus.message}</p>
+          <p className={`summary-status tone-${authStatus.tone}`}>
+            {normalizeField(authStatus.message)}
+          </p>
         </article>
       </section>
     )
@@ -465,7 +467,7 @@ export default function DoctorConsole() {
         <div className="session-pill">
           <div>
             <p className="field-label">Signed in</p>
-            <strong>{auth.user?.email}</strong>
+            <strong>{normalizeField(auth.user?.email)}</strong>
           </div>
           <button type="button" className="ghost" onClick={handleLogout}>
             Logout
@@ -488,7 +490,9 @@ export default function DoctorConsole() {
             </button>
           </div>
         </div>
-        <p className={`summary-status tone-${status.tone}`}>{status.message}</p>
+        <p className={`summary-status tone-${status.tone}`}>
+          {normalizeField(status.message)}
+        </p>
       </article>
 
       <div className="doctor-grid">
@@ -503,9 +507,9 @@ export default function DoctorConsole() {
             </p>
             {summary && (
               <div className="tag-pill">
-                <span>{summary.callId ?? 'Unknown call'}</span>
+                <span>{normalizeField(summary.callId ?? 'Unknown call')}</span>
                 <span className="divider">•</span>
-                <span>{summary.status ?? 'open'}</span>
+                <span>{normalizeField(summary.status ?? 'open')}</span>
               </div>
             )}
           </header>
@@ -583,7 +587,7 @@ export default function DoctorConsole() {
               Escalate to physical visit
             </button>
           </div>
-          <p className="call-status">{callStatus}</p>
+          <p className="call-status">{normalizeField(callStatus)}</p>
         </article>
       </div>
 
@@ -684,7 +688,9 @@ export default function DoctorConsole() {
             Send prescription to patient
           </button>
         </div>
-        <p className={`summary-status tone-${prescriptionStatus.tone}`}>{prescriptionStatus.message}</p>
+        <p className={`summary-status tone-${prescriptionStatus.tone}`}>
+          {normalizeField(prescriptionStatus.message)}
+        </p>
       </article>
     </section>
   )
