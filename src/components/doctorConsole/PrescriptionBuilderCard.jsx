@@ -1,0 +1,117 @@
+import { normalizeField } from './formatters.js'
+
+export default function PrescriptionBuilderCard({
+  prescriptionItems,
+  options,
+  durationOptions,
+  maxItems,
+  canAddRow,
+  isPrescriptionReady,
+  notes,
+  prescriptionStatus,
+  onUpdateItemField,
+  onAddRow,
+  onRemoveRow,
+  onNotesChange,
+  onSend,
+}) {
+  return (
+    <article className="card prescription-card">
+      <header>
+        <p className="eyebrow">Prescription builder</p>
+        <h3>Send structured medication plans</h3>
+        <p className="meta">Choose from the approved formulary, set the dosing cadence, and push the plan to the patient portal.</p>
+      </header>
+
+      <div className="prescription-grid">
+        {prescriptionItems.map((item, index) => (
+          <div key={`rx-${index}`} className="prescription-row">
+            <div>
+              <label className="field-label" htmlFor={`medicine-${index}`}>
+                Medicine
+              </label>
+              <select
+                id={`medicine-${index}`}
+                value={item.medicineCode}
+                onChange={(event) => onUpdateItemField(index, 'medicineCode', event.target.value)}
+              >
+                <option value="">Select medicine</option>
+                {options.medicines.map((medicine) => (
+                  <option key={medicine.code} value={medicine.code}>
+                    {medicine.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="field-label" htmlFor={`frequency-${index}`}>
+                Frequency
+              </label>
+              <select
+                id={`frequency-${index}`}
+                value={item.frequency}
+                onChange={(event) => onUpdateItemField(index, 'frequency', event.target.value)}
+              >
+                <option value="">Select frequency</option>
+                {options.frequencies.map((frequency) => (
+                  <option key={frequency.code} value={frequency.code}>
+                    {frequency.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="field-label" htmlFor={`duration-${index}`}>
+                Duration
+              </label>
+              <select
+                id={`duration-${index}`}
+                value={item.durationKey}
+                onChange={(event) => onUpdateItemField(index, 'durationKey', event.target.value)}
+              >
+                <option value="">Select duration</option>
+                {durationOptions.map((duration) => (
+                  <option key={duration.key} value={duration.key}>
+                    {duration.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+            {prescriptionItems.length > 1 && (
+              <button type="button" className="ghost" onClick={() => onRemoveRow(index)}>
+                Remove
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="inline-actions">
+        <button type="button" className="secondary" onClick={onAddRow} disabled={!canAddRow}>
+          Add another medicine
+        </button>
+        <span className="muted">
+          {prescriptionItems.length}/{maxItems} entries
+        </span>
+      </div>
+
+      <label className="field-label" htmlFor="notesInput">
+        Additional notes (optional)
+      </label>
+      <textarea
+        id="notesInput"
+        rows={3}
+        value={notes}
+        onChange={onNotesChange}
+        placeholder="Hydrate well, report if fever crosses 101°F…"
+      />
+
+      <div className="lookup-row">
+        <button type="button" className="primary" onClick={onSend} disabled={!isPrescriptionReady}>
+          Send prescription to patient
+        </button>
+      </div>
+      <p className={`summary-status tone-${prescriptionStatus.tone}`}>{normalizeField(prescriptionStatus.message)}</p>
+    </article>
+  )
+}

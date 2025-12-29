@@ -1,42 +1,17 @@
 import { useEffect, useMemo, useState } from 'react'
 
+import AssignmentControlsCard from './doctorConsole/AssignmentControlsCard.jsx'
+import AuthCard from './doctorConsole/AuthCard.jsx'
+import CallControlsCard from './doctorConsole/CallControlsCard.jsx'
+import PrescriptionBuilderCard from './doctorConsole/PrescriptionBuilderCard.jsx'
+import SummaryCard from './doctorConsole/SummaryCard.jsx'
+import TopBar from './doctorConsole/TopBar.jsx'
+
+import { callActionMessages } from './doctorConsole/constants.js'
+import { normalizeField } from './doctorConsole/formatters.js'
+import { readStoredAuth, writeStoredAuth } from './doctorConsole/storage.js'
+
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
-const DOCTOR_AUTH_STORAGE_KEY = 'curo-doctor-auth'
-
-const callActionMessages = {
-  audio: 'Dialing patient via secure line…',
-  video: 'Sending video consult invitation…',
-  end: 'Consult marked as completed.',
-  escalate: 'Escalation sent to physical visit coordinator.',
-}
-
-const summaryDateFormatter = new Intl.DateTimeFormat('en-US', {
-  dateStyle: 'medium',
-  timeStyle: 'short',
-})
-
-const normalizeField = (value) => {
-  if (value === null || value === undefined || value === '') {
-    return '—'
-  }
-  if (typeof value === 'object') {
-    try {
-      return JSON.stringify(value)
-    } catch (_error) {
-      return '[object]'
-    }
-  }
-  return value
-}
-
-const parseRedFlags = (value) => {
-  if (!value) return []
-  if (Array.isArray(value)) return value.filter(Boolean)
-  return String(value)
-    .split(/[\,\n]/)
-    .map((entry) => entry.trim())
-    .filter(Boolean)
-}
 
 const createEmptyPrescriptionItem = (options) => ({
   medicineCode: '',
@@ -45,18 +20,8 @@ const createEmptyPrescriptionItem = (options) => ({
     options?.durations?.length ? `${options.durations[0].value}|${options.durations[0].unit}` : '',
 })
 
-const readStoredAuth = (storageKey) => {
-  if (typeof window === 'undefined') return null
-  try {
-    const raw = window.localStorage.getItem(storageKey)
-    return raw ? JSON.parse(raw) : null
-  } catch (_error) {
-    return null
-  }
-}
-
 export default function DoctorConsole() {
-  const [auth, setAuth] = useState(() => readStoredAuth(DOCTOR_AUTH_STORAGE_KEY))
+  const [auth, setAuth] = useState(() => readStoredAuth())
   const [authMode, setAuthMode] = useState('login')
   const [credentials, setCredentials] = useState(() => ({
     name: '',
@@ -87,12 +52,7 @@ export default function DoctorConsole() {
   })
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (auth) {
-      window.localStorage.setItem(DOCTOR_AUTH_STORAGE_KEY, JSON.stringify(auth))
-    } else {
-      window.localStorage.removeItem(DOCTOR_AUTH_STORAGE_KEY)
-    }
+    writeStoredAuth(auth)
   }, [auth])
 
   useEffect(() => {
@@ -371,327 +331,43 @@ export default function DoctorConsole() {
 
   if (!auth) {
     return (
-      <section className="doctor-panel">
-        <header>
-          <p className="eyebrow">Doctor console</p>
-          <h2>Create an account or log in to start reviewing summaries.</h2>
-          <p className="subtitle">
-            New here? Register with your name, work email, and a password. Returning doctors can sign in instantly.
-          </p>
-        </header>
-
-        <article className="card auth-card">
-          <header>
-            <h3>Secure credentials</h3>
-            <p>We store hashed passwords only. Keep them private.</p>
-          </header>
-          <div className="auth-toggle">
-            <button
-              type="button"
-              className={authMode === 'login' ? 'primary' : 'ghost'}
-              onClick={() => toggleAuthMode('login')}
-            >
-              Sign in
-            </button>
-            <button
-              type="button"
-              className={authMode === 'register' ? 'primary' : 'ghost'}
-              onClick={() => toggleAuthMode('register')}
-            >
-              Register
-            </button>
-          </div>
-
-          <form className="lookup-form" onSubmit={handleAuthSubmit}>
-            {authMode === 'register' && (
-              <>
-                <label className="field-label" htmlFor="doctorName">
-                  Full name
-                </label>
-                <input
-                  id="doctorName"
-                  name="name"
-                  value={credentials.name}
-                  onChange={handleCredentialChange}
-                  placeholder="Dr. Jane Doe"
-                  autoComplete="name"
-                />
-              </>
-            )}
-
-            <label className="field-label" htmlFor="doctorEmail">
-              Work email
-            </label>
-            <input
-              id="doctorEmail"
-              name="email"
-              value={credentials.email}
-              onChange={handleCredentialChange}
-              placeholder="you@clinic.com"
-              autoComplete="email"
-            />
-
-            <label className="field-label" htmlFor="doctorPassword">
-              Password
-            </label>
-            <input
-              id="doctorPassword"
-              name="password"
-              type="password"
-              value={credentials.password}
-              onChange={handleCredentialChange}
-              placeholder="Create a strong password"
-              autoComplete={authMode === 'register' ? 'new-password' : 'current-password'}
-            />
-
-            <button type="submit" className="primary">
-              {authMode === 'register' ? 'Create account & continue' : 'Sign in'}
-            </button>
-          </form>
-
-          <p className={`summary-status tone-${authStatus.tone}`}>
-            {normalizeField(authStatus.message)}
-          </p>
-        </article>
-      </section>
+      <AuthCard
+        authMode={authMode}
+        credentials={credentials}
+        authStatus={authStatus}
+        onToggleMode={toggleAuthMode}
+        onCredentialChange={handleCredentialChange}
+        onSubmit={handleAuthSubmit}
+      />
     )
   }
 
   return (
     <section className="doctor-panel">
-      <header className="topbar">
-        <div>
-          <p className="tag">CuroSync</p>
-          <h1>Doctor operations — AI-generated summaries with live controls.</h1>
-        </div>
-        <div className="session-pill">
-          <div>
-            <p className="field-label">Signed in</p>
-            <strong>{normalizeField(auth.user?.email)}</strong>
-          </div>
-          <button type="button" className="ghost" onClick={handleLogout}>
-            Logout
-          </button>
-        </div>
-      </header>
+      <TopBar email={auth.user?.email} onLogout={handleLogout} />
 
-      <article className="card doctor-toolbar">
-        <header>
-          <h3>Assignment controls</h3>
-          <p>Claim the next intake or hand it back to the queue.</p>
-        </header>
-        <div className="lookup-form">
-          <div className="lookup-row">
-            <button type="button" className="primary" onClick={fetchNextSummary}>
-              Load next summary
-            </button>
-            <button type="button" className="ghost" onClick={handleSkipSummary} disabled={!summary}>
-              Skip current summary
-            </button>
-          </div>
-        </div>
-        <p className={`summary-status tone-${status.tone}`}>
-          {normalizeField(status.message)}
-        </p>
-      </article>
+      <AssignmentControlsCard status={status} summary={summary} onLoadNext={fetchNextSummary} onSkip={handleSkipSummary} />
 
       <div className="doctor-grid">
-        <article className={`card summary-card tone-${status.tone}`}>
-          <header>
-            <p className="eyebrow">AI-generated patient summary</p>
-            <h3>{summary ? normalizeField(summary.patientName) : 'Waiting for record…'}</h3>
-            <p className="meta">
-              {summary?.collectedAt
-                ? `Updated ${summaryDateFormatter.format(new Date(summary.collectedAt))}`
-                : 'No intake timestamp'}
-            </p>
-            {summary && (
-              <div className="tag-pill">
-                <span>{normalizeField(summary.callId ?? 'Unknown call')}</span>
-                <span className="divider">•</span>
-                <span>{normalizeField(summary.status ?? 'open')}</span>
-              </div>
-            )}
-          </header>
-
-          <div className="summary-focus">
-            <div>
-              <p className="field-label">Severity</p>
-              <span className="severity-pill">{normalizeField(summary?.severity)}</span>
-            </div>
-            <div>
-              <p className="field-label">Symptoms</p>
-              <p>{normalizeField(summary?.symptoms)}</p>
-            </div>
-          </div>
-
-          <div className="summary-grid">
-            <div>
-              <p className="field-label">Chief complaint</p>
-              <p>{normalizeField(summary?.chiefComplaint)}</p>
-            </div>
-            <div>
-              <p className="field-label">Duration</p>
-              <p>{normalizeField(summary?.duration)}</p>
-            </div>
-            <div>
-              <p className="field-label">Associated symptoms</p>
-              <p>{normalizeField(summary?.associatedSymptoms)}</p>
-            </div>
-            <div>
-              <p className="field-label">Relevant history</p>
-              <p>{normalizeField(summary?.relevantHistory)}</p>
-            </div>
-            <div>
-              <p className="field-label">Current meds</p>
-              <p>{normalizeField(summary?.currentMedications)}</p>
-            </div>
-            <div>
-              <p className="field-label">Additional details</p>
-              <p>{normalizeField(summary?.additionalDetails)}</p>
-            </div>
-          </div>
-
-          <div className="redflags">
-            <p className="field-label">Red flags</p>
-            <ul>
-              {parseRedFlags(summary?.redFlags).length === 0 && <li className="muted">No red flags reported</li>}
-              {parseRedFlags(summary?.redFlags).map((flag) => (
-                <li key={flag}>❌ {flag}</li>
-              ))}
-            </ul>
-          </div>
-
-          <p className="summary-alert">
-            The data is generated by AI for scripting only. Please use clinical expertise before diagnosing.
-          </p>
-        </article>
-
-        <article className="card call-controls">
-          <header>
-            <p className="eyebrow">Call controls</p>
-            <h3>One-tap actions</h3>
-            <p className="meta">Always visible for every consult.</p>
-          </header>
-          <div className="call-actions">
-            <button className="primary" onClick={() => handleCallAction('audio')}>
-              Call patient
-            </button>
-            <button className="secondary" onClick={() => handleCallAction('video')}>
-              Request video
-            </button>
-            <button className="ghost" onClick={() => handleCallAction('end')}>
-              End consult
-            </button>
-            <button className="danger" onClick={() => handleCallAction('escalate')}>
-              Escalate to physical visit
-            </button>
-          </div>
-          <p className="call-status">{normalizeField(callStatus)}</p>
-        </article>
+        <SummaryCard summary={summary} statusTone={status.tone} />
+        <CallControlsCard callStatus={callStatus} onAction={handleCallAction} />
       </div>
 
-      <article className="card prescription-card">
-        <header>
-          <p className="eyebrow">Prescription builder</p>
-          <h3>Send structured medication plans</h3>
-          <p className="meta">
-            Choose from the approved formulary, set the dosing cadence, and push the plan to the patient portal.
-          </p>
-        </header>
-
-        <div className="prescription-grid">
-          {prescriptionItems.map((item, index) => (
-            <div key={`rx-${index}`} className="prescription-row">
-              <div>
-                <label className="field-label" htmlFor={`medicine-${index}`}>
-                  Medicine
-                </label>
-                <select
-                  id={`medicine-${index}`}
-                  value={item.medicineCode}
-                  onChange={(event) => updateItemField(index, 'medicineCode', event.target.value)}
-                >
-                  <option value="">Select medicine</option>
-                  {options.medicines.map((medicine) => (
-                    <option key={medicine.code} value={medicine.code}>
-                      {medicine.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="field-label" htmlFor={`frequency-${index}`}>
-                  Frequency
-                </label>
-                <select
-                  id={`frequency-${index}`}
-                  value={item.frequency}
-                  onChange={(event) => updateItemField(index, 'frequency', event.target.value)}
-                >
-                  <option value="">Select frequency</option>
-                  {options.frequencies.map((frequency) => (
-                    <option key={frequency.code} value={frequency.code}>
-                      {frequency.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="field-label" htmlFor={`duration-${index}`}>
-                  Duration
-                </label>
-                <select
-                  id={`duration-${index}`}
-                  value={item.durationKey}
-                  onChange={(event) => updateItemField(index, 'durationKey', event.target.value)}
-                >
-                  <option value="">Select duration</option>
-                  {durationOptions.map((duration) => (
-                    <option key={duration.key} value={duration.key}>
-                      {duration.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              {prescriptionItems.length > 1 && (
-                <button type="button" className="ghost" onClick={() => removePrescriptionRow(index)}>
-                  Remove
-                </button>
-              )}
-            </div>
-          ))}
-        </div>
-
-        <div className="inline-actions">
-          <button type="button" className="secondary" onClick={addPrescriptionRow} disabled={!canAddRow}>
-            Add another medicine
-          </button>
-          <span className="muted">
-            {prescriptionItems.length}/{maxItems} entries
-          </span>
-        </div>
-
-        <label className="field-label" htmlFor="notesInput">
-          Additional notes (optional)
-        </label>
-        <textarea
-          id="notesInput"
-          rows={3}
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="Hydrate well, report if fever crosses 101°F…"
-        />
-
-        <div className="lookup-row">
-          <button type="button" className="primary" onClick={handleSendPrescription} disabled={!isPrescriptionReady}>
-            Send prescription to patient
-          </button>
-        </div>
-        <p className={`summary-status tone-${prescriptionStatus.tone}`}>
-          {normalizeField(prescriptionStatus.message)}
-        </p>
-      </article>
+      <PrescriptionBuilderCard
+        prescriptionItems={prescriptionItems}
+        options={options}
+        durationOptions={durationOptions}
+        maxItems={maxItems}
+        canAddRow={canAddRow}
+        isPrescriptionReady={isPrescriptionReady}
+        notes={notes}
+        prescriptionStatus={prescriptionStatus}
+        onUpdateItemField={updateItemField}
+        onAddRow={addPrescriptionRow}
+        onRemoveRow={removePrescriptionRow}
+        onNotesChange={(event) => setNotes(event.target.value)}
+        onSend={handleSendPrescription}
+      />
     </section>
   )
 }
