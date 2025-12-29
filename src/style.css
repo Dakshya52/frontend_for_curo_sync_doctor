@@ -142,7 +142,9 @@ body::before {
   color: var(--muted);
 }
 
-input {
+input,
+select,
+textarea {
   width: 100%;
   border-radius: 0.9rem;
   border: 1px solid rgba(255, 255, 255, 0.15);
@@ -153,8 +155,15 @@ input {
   font-family: inherit;
 }
 
-input:focus {
+input:focus,
+select:focus,
+textarea:focus {
   outline: 2px solid var(--accent);
+}
+
+textarea {
+  resize: none;
+  min-height: 120px;
 }
 
 button {
@@ -225,6 +234,23 @@ button:not(:disabled):active {
   align-items: flex-start;
 }
 
+.tag-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+  padding: 0.3rem 0.8rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.tag-pill .divider {
+  opacity: 0.4;
+}
+
 .summary-focus {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -286,6 +312,40 @@ button:not(:disabled):active {
   color: var(--muted);
 }
 
+.prescription-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.1rem;
+}
+
+.prescription-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.prescription-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.9rem;
+  align-items: end;
+}
+
+.prescription-row button {
+  margin-top: 1.4rem;
+}
+
+.inline-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  justify-content: space-between;
+}
+
+.inline-actions .muted {
+  font-size: 0.85rem;
+}
+
 @media (max-width: 768px) {
   .topbar {
     flex-direction: column;
@@ -295,6 +355,10 @@ button:not(:disabled):active {
   .lookup-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .prescription-row {
+    grid-template-columns: 1fr;
   }
 }
 
