@@ -313,7 +313,12 @@ export default function DoctorConsole() {
       const response = await authorizedFetch(`${API_BASE_URL}/api/prescriptions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ callId: summary.callId, items, notes }),
+        body: JSON.stringify({ 
+          callId: summary.callId,
+          patientUsername: summary.patientUsername,
+          items, 
+          notes 
+        }),
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) {
