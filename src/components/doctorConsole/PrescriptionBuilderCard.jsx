@@ -36,12 +36,25 @@ export default function PrescriptionBuilderCard({
                 onChange={(event) => onUpdateItemField(index, 'medicineCode', event.target.value)}
               >
                 <option value="">Select medicine</option>
-                {options.medicines.map((medicine) => (
+                {[...options.medicines, { code: 'custom', label: 'Custom (type below)' }].map((medicine) => (
                   <option key={medicine.code} value={medicine.code}>
                     {medicine.label}
                   </option>
                 ))}
               </select>
+              {item.medicineCode === 'custom' && (
+                <>
+                  <label className="field-label" htmlFor={`custom-${index}`}>
+                    Custom medicine name
+                  </label>
+                  <input
+                    id={`custom-${index}`}
+                    value={item.customLabel}
+                    onChange={(event) => onUpdateItemField(index, 'customLabel', event.target.value)}
+                    placeholder="Type medicine name"
+                  />
+                </>
+              )}
             </div>
             <div>
               <label className="field-label" htmlFor={`frequency-${index}`}>
@@ -76,6 +89,17 @@ export default function PrescriptionBuilderCard({
                   </option>
                 ))}
               </select>
+            </div>
+            <div>
+              <label className="field-label" htmlFor={`dosage-${index}`}>
+                Dosage
+              </label>
+              <input
+                id={`dosage-${index}`}
+                value={item.dosage}
+                onChange={(event) => onUpdateItemField(index, 'dosage', event.target.value)}
+                placeholder="e.g., 400 mg"
+              />
             </div>
             {prescriptionItems.length > 1 && (
               <button type="button" className="ghost" onClick={() => onRemoveRow(index)}>

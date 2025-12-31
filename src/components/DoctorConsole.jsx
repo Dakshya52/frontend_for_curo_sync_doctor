@@ -18,6 +18,8 @@ const createEmptyPrescriptionItem = (options) => ({
   frequency: '',
   durationKey:
     options?.durations?.length ? `${options.durations[0].value}|${options.durations[0].unit}` : '',
+  dosage: '',
+  customLabel: '',
 })
 
 export default function DoctorConsole() {
@@ -274,7 +276,21 @@ export default function DoctorConsole() {
   }
 
   const updateItemField = (index, field, value) => {
-    setPrescriptionItems((prev) => prev.map((item, idx) => (idx === index ? { ...item, [field]: value } : item)))
+    setPrescriptionItems((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item
+        if (field === 'medicineCode') {
+          const medicine = medicineMap.get(value)
+          return {
+            ...item,
+            medicineCode: value,
+            // prefill dosage for known meds; keep existing for custom
+            dosage: value === 'custom' ? item.dosage : medicine?.defaultDosage ?? item.dosage,
+          }
+        }
+        return { ...item, [field]: value }
+      }),
+    )
   }
 
   const addPrescriptionRow = () => {
@@ -302,8 +318,9 @@ export default function DoctorConsole() {
         const medicine = medicineMap.get(item.medicineCode)
         const [durationValueRaw, durationUnit] = item.durationKey.split('|')
         return {
-          medicineCode: item.medicineCode,
-          dosage: medicine?.defaultDosage ?? '',
+          medicineCode: item.medicineCode || 'custom',
+          customLabel: item.medicineCode === 'custom' ? item.customLabel : undefined,
+          dosage: item.dosage || medicine?.defaultDosage || 'As directed',
           frequency: item.frequency,
           durationValue: Number(durationValueRaw ?? 0),
           durationUnit,
