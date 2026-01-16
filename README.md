@@ -19,9 +19,9 @@ Create `frontend_for_curo_sync_doctor/.env` (do **not** commit it).
 
 Use this exact template (update values for your environment):
 ```env
-VITE_VAPI_ASSISTANT_ID = <your-vapi-assistant-id>
-VITE_VAPI_PUBLIC_KEY = <your-vapi-public-key>
-VITE_API_BASE_URL = http://localhost:4000
+VITE_API_BASE_URL=http://localhost:4000
+# Optional: tune doctor polling interval (ms)
+VITE_DOCTOR_POLL_INTERVAL_MS=8000
 ```
 
 ### 3) Run the app
