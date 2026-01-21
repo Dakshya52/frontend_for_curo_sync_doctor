@@ -1,6 +1,6 @@
 import { normalizeField } from './formatters.js'
 
-export default function AssignmentControlsCard({ status, summary, onLoadNext, onSkip }) {
+export default function AssignmentControlsCard({ status, summary, onLoadNext, onSkip, onDebug }) {
   return (
     <article className="card doctor-toolbar">
       <header>
@@ -15,6 +15,11 @@ export default function AssignmentControlsCard({ status, summary, onLoadNext, on
           <button type="button" className="ghost" onClick={onSkip} disabled={!summary}>
             Skip current summary
           </button>
+          {typeof onDebug === 'function' && (
+            <button type="button" className="ghost" onClick={onDebug}>
+              Debug snapshot
+            </button>
+          )}
         </div>
       </div>
       <p className={`summary-status tone-${status.tone}`}>{normalizeField(status.message)}</p>

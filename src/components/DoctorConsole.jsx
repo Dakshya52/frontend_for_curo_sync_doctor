@@ -105,6 +105,7 @@ export default function DoctorConsole() {
         const data = await response.json()
         setOptions(data)
       } catch (error) {
+        if (controller.signal.aborted || error?.name === 'AbortError') return
         console.error('Failed to load options', error)
       }
     }
@@ -165,6 +166,18 @@ export default function DoctorConsole() {
       if (!response.ok) {
         throw new Error(payload.error ?? 'Unable to fetch the next summary')
       }
+      if (!payload.intake) {
+        setSummary((prev) => {
+          if (prev && prev.status === 'closed') return prev
+          return null
+        })
+        resetPrescriptionForm()
+        setStatus({
+          message: payload.message ?? 'No available patient intake records',
+          tone: 'idle',
+        })
+        return
+      }
       setSummary(payload.intake)
       resetPrescriptionForm()
       setStatus({
@@ -177,15 +190,30 @@ export default function DoctorConsole() {
     }
   }
 
+  const handleDebugSnapshot = async () => {
+    try {
+      const response = await authorizedFetch(`${API_BASE_URL}/api/patient-intake/debug/snapshot`)
+      const payload = await response.json().catch(() => ({}))
+      console.log('Doctor intake debug snapshot:', payload)
+      setStatus({ message: 'Debug snapshot logged to console.', tone: 'success' })
+    } catch (error) {
+      setStatus({ message: error.message ?? 'Unable to fetch debug snapshot', tone: 'error' })
+    }
+  }
+
   const handleSkipSummary = async () => {
     if (!summary) {
       setStatus({ message: 'No active summary to skip.', tone: 'error' })
       return
     }
+    if (!summary.id) {
+      setStatus({ message: 'This summary is missing an intake ID.', tone: 'error' })
+      return
+    }
     setStatus({ message: 'Releasing summary back to the queue…', tone: 'loading' })
     try {
       const response = await authorizedFetch(
-        `${API_BASE_URL}/api/patient-intake/${encodeURIComponent(summary.callId)}/skip`,
+        `${API_BASE_URL}/api/patient-intake/by-id/${encodeURIComponent(summary.id)}/skip`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -307,6 +335,10 @@ export default function DoctorConsole() {
       setPrescriptionStatus({ message: 'No active summary selected.', tone: 'error' })
       return
     }
+    if (!summary.id) {
+      setPrescriptionStatus({ message: 'This summary is missing an intake ID.', tone: 'error' })
+      return
+    }
     if (!isPrescriptionReady) {
       setPrescriptionStatus({ message: 'Select medicine, frequency, and duration first.', tone: 'error' })
       return
@@ -331,8 +363,7 @@ export default function DoctorConsole() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
-          callId: summary.callId,
-          patientUsername: summary.patientUsername,
+          intakeId: summary.id,
           items, 
           notes 
         }),
@@ -342,8 +373,8 @@ export default function DoctorConsole() {
         throw new Error(payload.error ?? 'Unable to create prescription')
       }
 
-      setPrescriptionStatus({ message: 'Prescription sent to the patient portal.', tone: 'success' })
-      setSummary(null)
+      setPrescriptionStatus({ message: 'Prescription sent. Consult marked closed.', tone: 'success' })
+      setSummary((prev) => (prev ? { ...prev, status: 'closed' } : prev))
       resetPrescriptionForm()
       await fetchNextSummary()
     } catch (error) {
@@ -368,7 +399,13 @@ export default function DoctorConsole() {
     <section className="doctor-panel">
       <TopBar email={auth.user?.email} onLogout={handleLogout} />
 
-      <AssignmentControlsCard status={status} summary={summary} onLoadNext={fetchNextSummary} onSkip={handleSkipSummary} />
+      <AssignmentControlsCard
+        status={status}
+        summary={summary}
+        onLoadNext={fetchNextSummary}
+        onSkip={handleSkipSummary}
+        onDebug={handleDebugSnapshot}
+      />
 
       <div className="doctor-grid">
         <SummaryCard summary={summary} statusTone={status.tone} />
