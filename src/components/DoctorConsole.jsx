@@ -11,7 +11,11 @@ import { callActionMessages } from './doctorConsole/constants.js'
 import { normalizeField } from './doctorConsole/formatters.js'
 import { readStoredAuth, writeStoredAuth } from './doctorConsole/storage.js'
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:4000'
+const rawApiBaseUrl = import.meta.env.VITE_API_BASE_URL
+const API_BASE_URL =
+  typeof rawApiBaseUrl === 'string' && rawApiBaseUrl.trim()
+    ? rawApiBaseUrl.trim().replace(/\/+$/, '')
+    : 'http://localhost:4000'
 
 const createEmptyPrescriptionItem = (options) => ({
   medicineCode: '',
