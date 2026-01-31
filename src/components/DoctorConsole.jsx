@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 import AssignmentControlsCard from './doctorConsole/AssignmentControlsCard.jsx'
 import AuthCard from './doctorConsole/AuthCard.jsx'
 import CallControlsCard from './doctorConsole/CallControlsCard.jsx'
+import CallModal from './doctorConsole/CallModal.jsx'
 import PrescriptionBuilderCard from './doctorConsole/PrescriptionBuilderCard.jsx'
 import SummaryCard from './doctorConsole/SummaryCard.jsx'
 import TopBar from './doctorConsole/TopBar.jsx'
@@ -56,6 +57,7 @@ export default function DoctorConsole() {
     message: 'Select medicines to compile a prescription.',
     tone: 'idle',
   })
+  const [activeCall, setActiveCall] = useState(null)
 
   useEffect(() => {
     writeStoredAuth(auth)
@@ -303,8 +305,41 @@ export default function DoctorConsole() {
     }
   }
 
-  const handleCallAction = (action) => {
-    setCallStatus(callActionMessages[action] ?? 'Action triggered.')
+  const handleCallAction = async (action) => {
+    if (action === 'call' && summary) {
+      // Initiate call to patient
+      if (!summary.patientId) {
+        setCallStatus('Cannot call: Patient ID not available')
+        return
+      }
+
+      setCallStatus('Initiating call...')
+      try {
+        const response = await authorizedFetch(`${API_BASE_URL}/api/calls/initiate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            patientId: summary.patientId,
+            intakeId: summary.id,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to initiate call')
+        }
+
+        const data = await response.json()
+        setActiveCall({
+          callId: data.call.callId,
+          credentials: data.call.doctorCredentials,
+        })
+        setCallStatus('Call connected')
+      } catch (error) {
+        setCallStatus(`Call failed: ${error.message}`)
+      }
+    } else {
+      setCallStatus(callActionMessages[action] ?? 'Action triggered.')
+    }
   }
 
   const updateItemField = (index, field, value) => {
@@ -431,6 +466,15 @@ export default function DoctorConsole() {
         onNotesChange={(event) => setNotes(event.target.value)}
         onSend={handleSendPrescription}
       />
+
+      {activeCall && (
+        <CallModal
+          call={activeCall}
+          onClose={() => setActiveCall(null)}
+          apiBaseUrl={API_BASE_URL}
+          authToken={auth?.token}
+        />
+      )}
     </section>
   )
 }
