@@ -17,6 +17,9 @@ const API_BASE_URL =
     ? rawApiBaseUrl.trim().replace(/\/+$/, '')
     : 'http://localhost:4000'
 
+const rawHeartbeatInterval = import.meta.env.VITE_DOCTOR_POLL_INTERVAL_MS
+const HEARTBEAT_INTERVAL_MS = Number(rawHeartbeatInterval ?? 8000)
+
 const createEmptyPrescriptionItem = (options) => ({
   medicineCode: '',
   frequency: '',
@@ -94,6 +97,37 @@ export default function DoctorConsole() {
     }
     return response
   }
+
+  useEffect(() => {
+    if (!auth?.token) return
+    let isStopped = false
+    const controller = new AbortController()
+
+    const ping = async () => {
+      if (isStopped) return
+      try {
+        await authorizedFetch(`${API_BASE_URL}/api/doctors/heartbeat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          signal: controller.signal,
+        })
+      } catch (error) {
+        if (controller.signal.aborted || error?.name === 'AbortError') return
+        // Non-fatal: keep the console usable even if heartbeat fails.
+        console.warn('Doctor heartbeat failed', error)
+      }
+    }
+
+    ping()
+    const intervalMs = Number.isFinite(HEARTBEAT_INTERVAL_MS) ? HEARTBEAT_INTERVAL_MS : 8000
+    const handle = window.setInterval(ping, Math.max(3000, intervalMs))
+    return () => {
+      isStopped = true
+      controller.abort()
+      window.clearInterval(handle)
+    }
+  }, [auth?.token])
 
   useEffect(() => {
     if (!auth?.token) return
