@@ -26,6 +26,16 @@ export default function PrescriptionBuilderCard({
       <div className="prescription-grid">
         {prescriptionItems.map((item, index) => (
           <div key={`rx-${index}`} className="prescription-row">
+            {prescriptionItems.length > 1 && (
+              <button 
+                type="button" 
+                className="remove-medicine-btn" 
+                onClick={() => onRemoveRow(index)}
+                aria-label="Remove medicine"
+              >
+                ×
+              </button>
+            )}
             <div>
               <label className="field-label" htmlFor={`medicine-${index}`}>
                 Medicine
@@ -101,11 +111,21 @@ export default function PrescriptionBuilderCard({
                 placeholder="e.g., 400 mg"
               />
             </div>
-            {prescriptionItems.length > 1 && (
-              <button type="button" className="ghost" onClick={() => onRemoveRow(index)}>
-                Remove
-              </button>
-            )}
+            <div>
+              <label className="field-label" htmlFor={`when-${index}`}>
+                When
+              </label>
+              <select
+                id={`when-${index}`}
+                value={item.when}
+                onChange={(event) => onUpdateItemField(index, 'when', event.target.value)}
+              >
+                <option value="">Select when</option>
+                <option value="after-meal">After meal</option>
+                <option value="before-meal">Before meal</option>
+                <option value="sos">SOS</option>
+              </select>
+            </div>
           </div>
         ))}
       </div>

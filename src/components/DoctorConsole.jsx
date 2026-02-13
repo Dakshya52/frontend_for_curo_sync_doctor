@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 
-import AssignmentControlsCard from './doctorConsole/AssignmentControlsCard.jsx'
 import AuthCard from './doctorConsole/AuthCard.jsx'
-import CallControlsCard from './doctorConsole/CallControlsCard.jsx'
 import CallModal from './doctorConsole/CallModal.jsx'
+import ControlsCard from './doctorConsole/ControlsCard.jsx'
+import NavBar from './doctorConsole/NavBar.jsx'
 import PrescriptionBuilderCard from './doctorConsole/PrescriptionBuilderCard.jsx'
 import SummaryCard from './doctorConsole/SummaryCard.jsx'
-import TopBar from './doctorConsole/TopBar.jsx'
 
 import { callActionMessages } from './doctorConsole/constants.js'
 import { normalizeField } from './doctorConsole/formatters.js'
@@ -27,6 +26,7 @@ const createEmptyPrescriptionItem = (options) => ({
   durationKey:
     options?.durations?.length ? `${options.durations[0].value}|${options.durations[0].unit}` : '',
   dosage: '',
+  when: '',
   customLabel: '',
 })
 
@@ -71,6 +71,27 @@ export default function DoctorConsole() {
       setCredentials((prev) => ({ ...prev, email: auth.user.email }))
     }
   }, [auth])
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.body.classList.toggle('has-navbar', Boolean(auth))
+    return () => {
+      document.body.classList.remove('has-navbar')
+    }
+  }, [auth])
+
+  const handleUpdateProfile = ({ name, phoneNumber }) => {
+    if (!auth) return
+    const updatedAuth = {
+      ...auth,
+      user: {
+        ...auth.user,
+        name: name || auth.user?.name,
+        phoneNumber: phoneNumber || auth.user?.phoneNumber,
+      },
+    }
+    setAuth(updatedAuth)
+  }
 
   const handleLogout = () => {
     setAuth(null)
@@ -429,6 +450,7 @@ export default function DoctorConsole() {
           frequency: item.frequency,
           durationValue: Number(durationValueRaw ?? 0),
           durationUnit,
+          when: item.when || undefined,
         }
       })
 
@@ -469,20 +491,24 @@ export default function DoctorConsole() {
   }
 
   return (
-    <section className="doctor-panel">
-      <TopBar email={auth.user?.email} onLogout={handleLogout} />
-
-      <AssignmentControlsCard
-        status={status}
-        summary={summary}
-        onLoadNext={fetchNextSummary}
-        onSkip={handleSkipSummary}
-        onDebug={handleDebugSnapshot}
+    <>
+      <NavBar
+        user={auth.user}
+        onLogout={handleLogout}
+        onUpdateProfile={handleUpdateProfile}
       />
+      <section className="doctor-panel">
 
-      <div className="doctor-grid">
+      <div className="main-content-grid">
         <SummaryCard summary={summary} statusTone={status.tone} />
-        <CallControlsCard callStatus={callStatus} onAction={handleCallAction} />
+        <ControlsCard
+          status={status}
+          summary={summary}
+          callStatus={callStatus}
+          onLoadNext={fetchNextSummary}
+          onSkip={handleSkipSummary}
+          onCallAction={handleCallAction}
+        />
       </div>
 
       <PrescriptionBuilderCard
@@ -509,6 +535,7 @@ export default function DoctorConsole() {
           authToken={auth?.token}
         />
       )}
-    </section>
+      </section>
+    </>
   )
 }

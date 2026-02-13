@@ -4,9 +4,9 @@ export default function CallControlsCard({ callStatus, onAction }) {
   return (
     <article className="card call-controls">
       <header>
-        <p className="eyebrow">Call controls</p>
-        <h3>One-tap actions</h3>
-        <p className="meta">Always visible for every consult.</p>
+        <h3 className="eyebrow">Call controls</h3>
+        {/* <h3>One-tap actions</h3> */}
+        <p> One-tap actions</p>
       </header>
       <div className="call-actions">
         <button className="primary" onClick={() => onAction('audio')}>
