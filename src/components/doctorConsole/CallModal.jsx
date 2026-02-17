@@ -14,66 +14,87 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
   const remoteAudioRef = useRef(null)
 
   useEffect(() => {
-    if (!call?.credentials) return
+    if (!call?.credentials) {
+      console.log('[CallModal] No credentials provided')
+      return
+    }
 
     const initCall = async () => {
       try {
+        console.log('[CallModal] Starting call initialization')
+        console.log('[CallModal] Call object:', call)
         const { appId, token, roomId, userId } = call.credentials
+
+        console.log('[CallModal] Credentials:', { appId, token: token?.substring(0, 20) + '...', roomId, userId })
 
         if (!appId || !token || !roomId || !userId) {
           throw new Error('Missing call credentials')
         }
 
         // Initialize Zegocloud engine
+        console.log('[CallModal] Creating ZegoExpressEngine...')
         const zego = new ZegoExpressEngine(appId, 'wss://webliveroom-api.zegocloud.com/ws')
         zegoRef.current = zego
+        console.log('[CallModal] ZegoExpressEngine created')
 
         // Set up event listeners
         zego.on('roomStreamUpdate', async (roomID, updateType, streamList) => {
+          console.log('[CallModal] roomStreamUpdate:', { roomID, updateType, streamCount: streamList.length })
           if (updateType === 'ADD') {
             for (const stream of streamList) {
+              console.log('[CallModal] Starting to play stream:', stream.streamID)
               const remoteStream = await zego.startPlayingStream(stream.streamID)
               remoteStreamRef.current = remoteStream
               if (remoteAudioRef.current && remoteStream) {
                 remoteAudioRef.current.srcObject = remoteStream
-                remoteAudioRef.current.play().catch(err => console.error('Failed to play remote audio', err))
+                remoteAudioRef.current.play().catch(err => console.error('[CallModal] Failed to play remote audio', err))
               }
             }
           }
         })
 
         zego.on('roomStateUpdate', (roomID, state, errorCode, extendedData) => {
-          console.log('Room state:', state, errorCode)
+          console.log('[CallModal] Room state update:', { roomID, state, errorCode, extendedData })
           if (state === 'CONNECTED') {
+            console.log('[CallModal] Successfully connected to room')
             setCallState('active')
             startCallTimer()
             updateCallStatus('active')
           } else if (state === 'DISCONNECTED' && errorCode !== 0) {
+            console.error('[CallModal] Disconnected with error:', errorCode)
             setError('Connection lost')
             setCallState('ended')
           }
         })
 
         // Login to room
+        console.log('[CallModal] Logging into room:', roomId, 'as user:', userId)
         await zego.loginRoom(
           roomId,
           token,
           { userID: userId, userName: userId },
           { userUpdate: true }
         )
+        console.log('[CallModal] Successfully logged into room')
 
         // Create and publish local stream
+        console.log('[CallModal] Creating local audio stream...')
         const localStream = await zego.createStream({
           camera: { audio: true, video: false }
         })
         localStreamRef.current = localStream
+        console.log('[CallModal] Local stream created')
 
         const publishStreamId = `${roomId}_${userId}_call`
+        console.log('[CallModal] Publishing stream:', publishStreamId)
         await zego.startPublishingStream(publishStreamId, localStream)
 
-        console.log('Call initiated successfully')
+        console.log('[CallModal] Call initiated successfully')
       } catch (err) {
-        console.error('Failed to initialize call', err)
+        console.error('[CallModal] Failed to initialize call:', err)
+        console.error('[CallModal] Error name:', err.name)
+        console.error('[CallModal] Error message:', err.message)
+        console.error('[CallModal] Error stack:', err.stack)
         setError(err.message || 'Failed to start call')
         setCallState('ended')
       }
