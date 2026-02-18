@@ -12,6 +12,9 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
   const remoteStreamRef = useRef(null)
   const timerRef = useRef(null)
   const remoteAudioRef = useRef(null)
+  const isEndingRef = useRef(false)
+  const hasRemoteUserRef = useRef(false)
+  const statusPollRef = useRef(null)
 
   useEffect(() => {
     if (!call?.credentials) {
@@ -39,10 +42,21 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
 
         // Set up event listeners
         zego.on('roomStreamUpdate', async (roomID, updateType, streamList) => {
-          console.log('[CallModal] roomStreamUpdate:', { roomID, updateType, streamCount: streamList.length })
+          console.log('[CallModal] roomStreamUpdate:', { roomID, updateType, streamCount: streamList.length, streams: streamList })
           if (updateType === 'ADD') {
             for (const stream of streamList) {
-              console.log('[CallModal] Starting to play stream:', stream.streamID)
+              console.log('[CallModal] Starting to play stream:', stream.streamID, 'from user:', stream.user?.userID)
+              
+              // Patient has joined - update call state to active
+              if (!hasRemoteUserRef.current) {
+                hasRemoteUserRef.current = true
+                stopStatusPolling() // Stop polling since patient joined
+                setCallState('active')
+                startCallTimer()
+                updateCallStatus('active')
+                console.log('[CallModal] Patient joined - call is now active')
+              }
+              
               const remoteStream = await zego.startPlayingStream(stream.streamID)
               remoteStreamRef.current = remoteStream
               if (remoteAudioRef.current && remoteStream) {
@@ -50,16 +64,63 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
                 remoteAudioRef.current.play().catch(err => console.error('[CallModal] Failed to play remote audio', err))
               }
             }
+          } else if (updateType === 'DELETE') {
+            // Remote stream removed - patient ended the call
+            console.log('[CallModal] Stream deleted, streamList:', streamList)
+            if (hasRemoteUserRef.current && !isEndingRef.current) {
+              console.log('[CallModal] Remote patient stream deleted - patient ended call')
+              isEndingRef.current = true
+              setError('Patient ended the call')
+              setCallState('ended')
+              setTimeout(() => {
+                cleanup()
+                onClose()
+              }, 2000)
+            }
+          }
+        })
+
+        // Detect when remote user leaves the room
+        zego.on('roomUserUpdate', (roomID, updateType, userList) => {
+          console.log('[CallModal] roomUserUpdate:', { 
+            roomID, 
+            updateType, 
+            userCount: userList.length,
+            users: userList.map(u => ({ userID: u.userID, userName: u.userName }))
+          })
+          if (updateType === 'ADD') {
+            console.log('[CallModal] User(s) joined:', userList.map(u => u.userID))
+            
+            // Patient has joined - update call state to active (if not already)
+            if (!hasRemoteUserRef.current) {
+              hasRemoteUserRef.current = true
+              stopStatusPolling() // Stop polling since patient joined
+              setCallState('active')
+              startCallTimer()
+              updateCallStatus('active')
+              console.log('[CallModal] Patient joined - call is now active')
+            }
+          } else if (updateType === 'DELETE') {
+            console.log('[CallModal] User(s) left:', userList.map(u => u.userID))
+            if (hasRemoteUserRef.current && !isEndingRef.current) {
+              // Remote party has left the room
+              console.log('[CallModal] Remote patient left the room - ending call')
+              isEndingRef.current = true
+              setError('Patient ended the call')
+              setCallState('ended')
+              setTimeout(() => {
+                cleanup()
+                onClose()
+              }, 2000)
+            }
           }
         })
 
         zego.on('roomStateUpdate', (roomID, state, errorCode, extendedData) => {
           console.log('[CallModal] Room state update:', { roomID, state, errorCode, extendedData })
           if (state === 'CONNECTED') {
-            console.log('[CallModal] Successfully connected to room')
-            setCallState('active')
-            startCallTimer()
-            updateCallStatus('active')
+            console.log('[CallModal] Doctor successfully connected to room - waiting for patient...')
+            // Don't set to active yet - wait for patient to join
           } else if (state === 'DISCONNECTED' && errorCode !== 0) {
             console.error('[CallModal] Disconnected with error:', errorCode)
             setError('Connection lost')
@@ -90,6 +151,9 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
         await zego.startPublishingStream(publishStreamId, localStream)
 
         console.log('[CallModal] Call initiated successfully')
+        
+        // Start polling for call status (to detect if patient rejects)
+        startStatusPolling()
       } catch (err) {
         console.error('[CallModal] Failed to initialize call:', err)
         console.error('[CallModal] Error name:', err.name)
@@ -130,7 +194,68 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
     }
   }
 
+  const checkCallStatus = async () => {
+    if (!authToken || !call?.callId || isEndingRef.current) return
+    
+    try {
+      const response = await fetch(`${apiBaseUrl}/api/calls/${call.callId}`, {
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      })
+      
+      if (response.ok) {
+        const data = await response.json()
+        const status = data.call?.status
+        
+        console.log('[CallModal] Poll - call status:', status)
+        
+        if (status === 'missed' && !hasRemoteUserRef.current) {
+          // Patient rejected the call
+          console.log('[CallModal] Patient rejected the call')
+          stopStatusPolling()
+          isEndingRef.current = true
+          setError('Patient rejected the call')
+          setCallState('ended')
+          setTimeout(() => {
+            cleanup()
+            onClose()
+          }, 2000)
+        } else if (status === 'ended' && !isEndingRef.current) {
+          // Call ended by patient
+          console.log('[CallModal] Call was ended')
+          stopStatusPolling()
+          isEndingRef.current = true
+          setError('Call ended')
+          setCallState('ended')
+          setTimeout(() => {
+            cleanup()
+            onClose()
+          }, 2000)
+        }
+      }
+    } catch (err) {
+      console.error('[CallModal] Failed to check call status', err)
+    }
+  }
+
+  const startStatusPolling = () => {
+    console.log('[CallModal] Starting status polling')
+    // Poll every 2 seconds while waiting for patient
+    statusPollRef.current = setInterval(checkCallStatus, 2000)
+  }
+
+  const stopStatusPolling = () => {
+    if (statusPollRef.current) {
+      console.log('[CallModal] Stopping status polling')
+      clearInterval(statusPollRef.current)
+      statusPollRef.current = null
+    }
+  }
+
   const cleanup = () => {
+    stopStatusPolling()
+    
     if (timerRef.current) {
       clearInterval(timerRef.current)
     }
@@ -150,6 +275,7 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
   }
 
   const handleEndCall = async () => {
+    isEndingRef.current = true // Prevent duplicate cleanup
     await updateCallStatus('ended')
     setCallState('ended')
     cleanup()
@@ -197,7 +323,11 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
               {callState === 'active' && '🗣️'}
               {callState === 'ended' && '✅'}
             </div>
-            <p style={styles.callInfo}>Calling Patient</p>
+            <p style={styles.callInfo}>
+              {callState === 'connecting' && 'Waiting for patient...'}
+              {callState === 'active' && 'Connected to patient'}
+              {callState === 'ended' && 'Call ended'}
+            </p>
           </div>
 
           <audio ref={remoteAudioRef} autoPlay playsInline style={{ display: 'none' }} />
