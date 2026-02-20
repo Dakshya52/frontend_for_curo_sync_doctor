@@ -6,6 +6,7 @@ import ControlsCard from './doctorConsole/ControlsCard.jsx'
 import NavBar from './doctorConsole/NavBar.jsx'
 import PrescriptionBuilderCard from './doctorConsole/PrescriptionBuilderCard.jsx'
 import SummaryCard from './doctorConsole/SummaryCard.jsx'
+import DoctorRegistrationForm from './doctorConsole/DoctorRegistrationForm.jsx'
 
 import { callActionMessages } from './doctorConsole/constants.js'
 import { normalizeField } from './doctorConsole/formatters.js'
@@ -38,6 +39,39 @@ export default function DoctorConsole() {
     email: auth?.user?.email ?? '',
     password: '',
   }))
+  const [registrationFormData, setRegistrationFormData] = useState({
+    fullName: '',
+    gender: '',
+    dateOfBirth: '',
+    mobileNumber: '',
+    email: '',
+    password: '',
+    primaryQualification: '',
+    additionalQualification: '',
+    yearOfGraduation: '',
+    medicalRegistrationNumber: '',
+    stateMedicalCouncil: '',
+    yearOfRegistration: '',
+    currentPracticeAddress: '',
+    city: '',
+    state: '',
+    pincode: '',
+    languagesSpoken: [],
+    specialization: '',
+    specializationOther: '',
+    panNumber: '',
+    accountHolderName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    signatureImage: null,
+    declaration1: false,
+    declaration2: false,
+    declaration3: false,
+    declaration4: false,
+    declaration5: false,
+    declaration6: false,
+  })
   const [authStatus, setAuthStatus] = useState({
     message: 'Enter your work email and password to continue.',
     tone: 'idle',
@@ -61,6 +95,7 @@ export default function DoctorConsole() {
     tone: 'idle',
   })
   const [activeCall, setActiveCall] = useState(null)
+  const [callIsActive, setCallIsActive] = useState(false)
 
   useEffect(() => {
     writeStoredAuth(auth)
@@ -79,6 +114,29 @@ export default function DoctorConsole() {
       document.body.classList.remove('has-navbar')
     }
   }, [auth])
+
+  // Verify session and update lastLoginAt when loading with saved token
+  useEffect(() => {
+    if (!auth?.token) return
+    
+    const verifySession = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
+          headers: { Authorization: `Bearer ${auth.token}` },
+        })
+        if (!response.ok) {
+          // Token is invalid, clear auth
+          if (response.status === 401) {
+            handleLogout()
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to verify session:', error)
+      }
+    }
+    
+    verifySession()
+  }, []) // Run only once on mount
 
   const handleUpdateProfile = ({ name, phoneNumber }) => {
     if (!auth) return
@@ -238,7 +296,7 @@ export default function DoctorConsole() {
     [prescriptionItems],
   )
 
-  const isPrescriptionReady = Boolean(summary) && completedItems.length > 0
+  const isPrescriptionReady = Boolean(summary) && completedItems.length > 0 && callIsActive
   const maxItems = options.maxItemsPerPrescription ?? 1
   const canAddRow = prescriptionItems.length < maxItems
 
@@ -339,12 +397,16 @@ export default function DoctorConsole() {
     setCredentials((prev) => ({ ...prev, [name]: value }))
   }
 
+  const handleRegistrationFieldChange = (fieldName, value) => {
+    setRegistrationFormData((prev) => ({ ...prev, [fieldName]: value }))
+  }
+
   const toggleAuthMode = (nextMode) => {
     setAuthMode(nextMode)
     setAuthStatus({
       message:
         nextMode === 'register'
-          ? 'Share a few details to create your workspace login.'
+          ? 'Complete the registration form with all required details.'
           : 'Enter your email and password to continue.',
       tone: 'idle',
     })
@@ -352,51 +414,121 @@ export default function DoctorConsole() {
 
   const handleAuthSubmit = async (event) => {
     event.preventDefault()
-    const trimmedEmail = credentials.email.trim()
-    const trimmedName = credentials.name.trim()
-    if (!trimmedEmail || !credentials.password.trim()) {
-      setAuthStatus({ message: 'Email and password are required.', tone: 'error' })
+    
+    // Handle login
+    if (authMode === 'login') {
+      const trimmedEmail = credentials.email.trim()
+      if (!trimmedEmail || !credentials.password.trim()) {
+        setAuthStatus({ message: 'Email and password are required.', tone: 'error' })
+        return
+      }
+      
+      setAuthStatus({
+        message: 'Signing you in…',
+        tone: 'loading',
+      })
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: trimmedEmail,
+            password: credentials.password,
+            role: 'doctor',
+          }),
+        })
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          throw new Error(payload.error ?? 'Authentication failed')
+        }
+        setAuth(payload)
+        setCredentials((prev) => ({ ...prev, password: '' }))
+        setAuthStatus({
+          message: 'Welcome back. Load the next summary when you are ready.',
+          tone: 'success',
+        })
+      } catch (error) {
+        setAuthStatus({ message: error.message ?? 'Authentication failed', tone: 'error' })
+      }
       return
     }
-    if (authMode === 'register' && !trimmedName) {
-      setAuthStatus({ message: 'Add your name so the care team recognizes you.', tone: 'error' })
-      return
-    }
-    const endpoint = authMode === 'register' ? 'register' : 'login'
-    const body = {
-      email: trimmedEmail,
-      password: credentials.password,
-      role: 'doctor',
-    }
-    if (authMode === 'register') {
-      body.name = trimmedName
-    }
+    
+    // Handle registration
+    const formData = new FormData()
+    
+    // Add all text fields
+    Object.keys(registrationFormData).forEach((key) => {
+      if (key === 'signatureImage') {
+        if (registrationFormData[key]) {
+          formData.append('signatureImage', registrationFormData[key])
+        }
+      } else if (key === 'languagesSpoken') {
+        formData.append(key, JSON.stringify(registrationFormData[key]))
+      } else {
+        formData.append(key, registrationFormData[key])
+      }
+    })
+    
+    // Add role
+    formData.append('role', 'doctor')
+    
     setAuthStatus({
-      message: authMode === 'register' ? 'Creating your account…' : 'Signing you in…',
+      message: 'Creating your account…',
       tone: 'loading',
     })
+    
     try {
-      const response = await fetch(`${API_BASE_URL}/api/auth/${endpoint}`, {
+      const response = await fetch(`${API_BASE_URL}/api/auth/register`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: formData,
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) {
-        throw new Error(payload.error ?? 'Authentication failed')
+        throw new Error(payload.error ?? 'Registration failed')
       }
-      setAuth(payload)
-      setCredentials((prev) => ({ ...prev, password: '' }))
+      // Don't set auth - doctor needs approval first
       setAuthStatus({
-        message:
-          authMode === 'register'
-            ? 'Welcome aboard! You are signed in and can start reviewing summaries.'
-            : 'Welcome back. Load the next summary when you are ready.',
+        message: 'Registration submitted successfully! Your account is pending approval by our admin team. You will be contacted once your registration is verified.',
         tone: 'success',
+      })
+      // Reset form and switch to login mode
+      setRegistrationFormData({
+        fullName: '',
+        gender: '',
+        dateOfBirth: '',
+        mobileNumber: '',
+        email: '',
+        password: '',
+        primaryQualification: '',
+        additionalQualification: '',
+        yearOfGraduation: '',
+        medicalRegistrationNumber: '',
+        stateMedicalCouncil: '',
+        yearOfRegistration: '',
+        currentPracticeAddress: '',
+        city: '',
+        state: '',
+        pincode: '',
+        languagesSpoken: [],
+        specialization: '',
+        specializationOther: '',
+        panNumber: '',
+        accountHolderName: '',
+        bankName: '',
+        accountNumber: '',
+        ifscCode: '',
+        signatureImage: null,
+        declaration1: false,
+        declaration2: false,
+        declaration3: false,
+        declaration4: false,
+        declaration5: false,
+        declaration6: false,
       })
       setAuthMode('login')
     } catch (error) {
-      setAuthStatus({ message: error.message ?? 'Authentication failed', tone: 'error' })
+      setAuthStatus({ message: error.message ?? 'Registration failed', tone: 'error' })
     }
   }
 
@@ -472,6 +604,15 @@ export default function DoctorConsole() {
     console.log('[handleCallAction] EXIT')
   }
 
+  const handleCallStateChange = (newState) => {
+    console.log('[handleCallStateChange] Call state changed to:', newState)
+    setCallIsActive(newState === 'active')
+    if (newState === 'ended') {
+      // Reset after a small delay to allow UI updates
+      setTimeout(() => setCallIsActive(false), 500)
+    }
+  }
+
   const updateItemField = (index, field, value) => {
     setPrescriptionItems((prev) =>
       prev.map((item, idx) => {
@@ -506,6 +647,13 @@ export default function DoctorConsole() {
     }
     if (!summary.id) {
       setPrescriptionStatus({ message: 'This summary is missing an intake ID.', tone: 'error' })
+      return
+    }
+    if (!callIsActive) {
+      setPrescriptionStatus({ 
+        message: 'You can only send prescriptions after the call with the patient has started. Please wait for the patient to join the call.', 
+        tone: 'error' 
+      })
       return
     }
     if (!isPrescriptionReady) {
@@ -553,6 +701,33 @@ export default function DoctorConsole() {
   }
 
   if (!auth) {
+    if (authMode === 'register') {
+      return (
+        <>
+          <div style={{ padding: '1rem', textAlign: 'center' }}>
+            <button 
+              onClick={() => toggleAuthMode('login')} 
+              style={{ 
+                background: 'none', 
+                border: '1px solid #ccc', 
+                padding: '0.5rem 1rem', 
+                cursor: 'pointer',
+                borderRadius: '4px' 
+              }}
+            >
+              ← Back to Login
+            </button>
+          </div>
+          <DoctorRegistrationForm
+            formData={registrationFormData}
+            onFieldChange={handleRegistrationFieldChange}
+            onSubmit={handleAuthSubmit}
+            registrationStatus={authStatus}
+          />
+        </>
+      )
+    }
+    
     return (
       <AuthCard
         authMode={authMode}
@@ -593,6 +768,7 @@ export default function DoctorConsole() {
         maxItems={maxItems}
         canAddRow={canAddRow}
         isPrescriptionReady={isPrescriptionReady}
+        callIsActive={callIsActive}
         notes={notes}
         prescriptionStatus={prescriptionStatus}
         onUpdateItemField={updateItemField}
@@ -605,9 +781,13 @@ export default function DoctorConsole() {
       {activeCall && (
         <CallModal
           call={activeCall}
-          onClose={() => setActiveCall(null)}
+          onClose={() => {
+            setActiveCall(null)
+            setCallIsActive(false)
+          }}
           apiBaseUrl={API_BASE_URL}
           authToken={auth?.token}
+          onCallStateChange={handleCallStateChange}
         />
       )}
       </section>

@@ -7,6 +7,7 @@ export default function PrescriptionBuilderCard({
   maxItems,
   canAddRow,
   isPrescriptionReady,
+  callIsActive,
   notes,
   prescriptionStatus,
   onUpdateItemField,
@@ -154,6 +155,11 @@ export default function PrescriptionBuilderCard({
         <button type="button" className="primary" onClick={onSend} disabled={!isPrescriptionReady}>
           Send prescription to patient
         </button>
+        {!callIsActive && (
+          <span className="muted" style={{ fontSize: '0.85rem', color: '#d9534f' }}>
+            ⓘ Call must be active to send prescription
+          </span>
+        )}
       </div>
       <p className={`summary-status tone-${prescriptionStatus.tone}`}>{normalizeField(prescriptionStatus.message)}</p>
     </article>

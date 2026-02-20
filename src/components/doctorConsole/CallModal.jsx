@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { ZegoExpressEngine } from 'zego-express-engine-webrtc'
 
-export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
+export default function CallModal({ call, onClose, apiBaseUrl, authToken, onCallStateChange }) {
   const [callState, setCallState] = useState('connecting') // connecting, active, ended
   const [isMuted, setIsMuted] = useState(false)
   const [callDuration, setCallDuration] = useState(0)
@@ -52,6 +52,7 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
                 hasRemoteUserRef.current = true
                 stopStatusPolling() // Stop polling since patient joined
                 setCallState('active')
+                if (onCallStateChange) onCallStateChange('active')
                 startCallTimer()
                 updateCallStatus('active')
                 console.log('[CallModal] Patient joined - call is now active')
@@ -72,6 +73,7 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
               isEndingRef.current = true
               setError('Patient ended the call')
               setCallState('ended')
+              if (onCallStateChange) onCallStateChange('ended')
               setTimeout(() => {
                 cleanup()
                 onClose()
@@ -96,6 +98,7 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
               hasRemoteUserRef.current = true
               stopStatusPolling() // Stop polling since patient joined
               setCallState('active')
+              if (onCallStateChange) onCallStateChange('active')
               startCallTimer()
               updateCallStatus('active')
               console.log('[CallModal] Patient joined - call is now active')
@@ -108,6 +111,7 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
               isEndingRef.current = true
               setError('Patient ended the call')
               setCallState('ended')
+              if (onCallStateChange) onCallStateChange('ended')
               setTimeout(() => {
                 cleanup()
                 onClose()
@@ -217,6 +221,7 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
           isEndingRef.current = true
           setError('Patient rejected the call')
           setCallState('ended')
+          if (onCallStateChange) onCallStateChange('ended')
           setTimeout(() => {
             cleanup()
             onClose()
@@ -228,6 +233,7 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
           isEndingRef.current = true
           setError('Call ended')
           setCallState('ended')
+          if (onCallStateChange) onCallStateChange('ended')
           setTimeout(() => {
             cleanup()
             onClose()
@@ -278,6 +284,7 @@ export default function CallModal({ call, onClose, apiBaseUrl, authToken }) {
     isEndingRef.current = true // Prevent duplicate cleanup
     await updateCallStatus('ended')
     setCallState('ended')
+    if (onCallStateChange) onCallStateChange('ended')
     cleanup()
     setTimeout(() => onClose(), 1000)
   }

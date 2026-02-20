@@ -999,3 +999,185 @@ button {
     grid-template-columns: 1fr;
   }
 }
+/* Doctor Registration Form Styles */
+.doctor-registration-form {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.registration-section {
+  padding: 2rem;
+}
+
+.registration-section header h3 {
+  margin: 0 0 0.5rem;
+  font-size: 1.5rem;
+  color: var(--accent);
+}
+
+.registration-section header p {
+  margin: 0.5rem 0 1.5rem;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--stroke);
+  border-radius: 0.5rem;
+  color: var(--text);
+  font-size: 1rem;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: var(--accent-soft);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder {
+  color: rgba(244, 246, 255, 0.4);
+}
+
+.form-group select {
+  cursor: pointer;
+}
+
+.form-group textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.language-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  transition: background 0.2s;
+}
+
+.checkbox-label:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--accent-soft);
+}
+
+.checkbox-label span {
+  flex: 1;
+}
+
+.declarations {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.checkbox-label.declaration {
+  padding: 1rem;
+  border: 1px solid var(--stroke);
+  border-radius: 0.5rem;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.checkbox-label.declaration span {
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.file-info {
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+  color: var(--accent-soft);
+}
+
+.form-actions {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
+
+.form-actions button {
+  min-width: 200px;
+}
+
+.form-actions button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.important-notice {
+  margin-top: 1.5rem;
+  padding: 1.25rem 1.5rem;
+  background: rgba(247, 221, 99, 0.1);
+  border-left: 4px solid var(--accent);
+  border-radius: 0.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.important-notice p {
+  margin: 0;
+  line-height: 1.7;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+.important-notice strong {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .language-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .registration-section {
+    padding: 1.5rem;
+  }
+  
+  .important-notice {
+    padding: 1rem;
+    font-size: 0.9rem;
+  }
+}
