@@ -153,7 +153,7 @@ export default function PrescriptionBuilderCard({
 
       <div className="lookup-row">
         <button type="button" className="primary" onClick={onSend} disabled={!isPrescriptionReady}>
-          Send prescription to patient
+          Sign and Send prescription to patient
         </button>
         {!callIsActive && (
           <span className="muted" style={{ fontSize: '0.85rem', color: '#d9534f' }}>
