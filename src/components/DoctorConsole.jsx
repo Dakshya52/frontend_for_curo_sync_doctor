@@ -165,28 +165,18 @@ export default function DoctorConsole() {
 
   const authorizedFetch = async (url, options = {}) => {
     try {
-      console.log('[authorizedFetch] 1. Calling URL:', url)
-      console.log('[authorizedFetch] 2. Options:', JSON.stringify(options))
-      console.log('[authorizedFetch] 3. Auth token exists:', !!auth?.token)
-      
       if (!auth?.token) {
-        console.error('[authorizedFetch] ERROR: No auth token!')
         throw new Error('Login required before calling this endpoint.')
       }
       
-      console.log('[authorizedFetch] 4. Building headers...')
       const headers = {
         ...(options.headers ?? {}),
         Authorization: `Bearer ${auth.token}`,
       }
-      console.log('[authorizedFetch] 5. Headers built:', Object.keys(headers))
-      
-      console.log('[authorizedFetch] 6. About to call fetch()...')
       
       // Add timeout to prevent hanging forever
       const controller = new AbortController()
       const timeoutId = setTimeout(() => {
-        console.error('[authorizedFetch] TIMEOUT after 10 seconds!')
         controller.abort()
       }, 10000) // 10 second timeout
       
@@ -196,25 +186,13 @@ export default function DoctorConsole() {
         signal: controller.signal 
       }).finally(() => clearTimeout(timeoutId))
       
-      console.log('[authorizedFetch] 7. Response received:', response.status, response.statusText)
-      console.log('[authorizedFetch] 7b. Response type:', response.type)
-      console.log('[authorizedFetch] 7c. Response headers:', Array.from(response.headers.entries()))
-      
-      // Check if this is actually an OPTIONS preflight response
-      if (response.status === 204 || response.type === 'opaque') {
-        console.error('[authorizedFetch] 7d. This is a preflight OPTIONS response, NOT the actual POST!')
-      }
-      
       if (response.status === 401) {
-        console.log('[authorizedFetch] 8. Status 401, logging out')
         handleLogout()
         throw new Error('Session expired. Please log in again.')
       }
       
-      console.log('[authorizedFetch] 9. Returning response')
       return response
     } catch (error) {
-      console.error('[authorizedFetch] CATCH block - error:', error.message, error)
       throw error
     }
   }
@@ -353,7 +331,6 @@ export default function DoctorConsole() {
     try {
       const response = await authorizedFetch(`${API_BASE_URL}/api/patient-intake/debug/snapshot`)
       const payload = await response.json().catch(() => ({}))
-      console.log('Doctor intake debug snapshot:', payload)
       setStatus({ message: 'Debug snapshot logged to console.', tone: 'success' })
     } catch (error) {
       setStatus({ message: error.message ?? 'Unable to fetch debug snapshot', tone: 'error' })
@@ -533,8 +510,6 @@ export default function DoctorConsole() {
   }
 
   const handleCallAction = async (action) => {
-    console.log('[handleCallAction] ENTRY - action:', action, 'summary exists:', !!summary)
-    
     if (action === 'audio' && summary) {
       // Initiate call to patient
       if (!summary.patientId && !summary.userPhoneNumber) {
@@ -543,16 +518,8 @@ export default function DoctorConsole() {
       }
 
       setCallStatus('Initiating call...')
-      console.log('[handleCallAction] Starting call initiation')
-      console.log('[handleCallAction] API_BASE_URL:', API_BASE_URL)
-      console.log('[handleCallAction] Summary:', { 
-        patientId: summary.patientId, 
-        userPhoneNumber: summary.userPhoneNumber,
-        intakeId: summary.id 
-      })
       
       try {
-        console.log('[handleCallAction] About to call authorizedFetch')
         const response = await authorizedFetch(`${API_BASE_URL}/api/calls/initiate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -561,28 +528,14 @@ export default function DoctorConsole() {
             userPhoneNumber: summary.userPhoneNumber || null,
             intakeId: summary.id,
           }),
-        }).catch(err => {
-          console.error('[handleCallAction] CATCH during authorizedFetch:', err)
-          throw err
         })
-
-        console.log('[handleCallAction] ===== RETURNED FROM FETCH =====')
-        console.log('[handleCallAction] A. Back from authorizedFetch')
-        console.log('[handleCallAction] B. Response object:', response)
-        console.log('[handleCallAction] C. Response status:', response.status)
-        console.log('[handleCallAction] D. Response ok:', response.ok)
-        console.log('[handleCallAction] E. Response type:', response.type)
         
         if (!response.ok) {
-          console.log('[handleCallAction] E. Response not ok, getting error data')
           const errorData = await response.json().catch(() => ({}))
-          console.error('[handleCallAction] F. Error response:', errorData)
           throw new Error(errorData.error || 'Failed to initiate call')
         }
 
-        console.log('[handleCallAction] G. About to parse JSON')
         const data = await response.json()
-        console.log('[handleCallAction] H. JSON parsed, data:', data)
         
         setActiveCall({
           callId: data.call.callId,
@@ -590,22 +543,14 @@ export default function DoctorConsole() {
         })
         setCallStatus('Call connected')
       } catch (error) {
-        console.error('[handleCallAction] OUTER CATCH - error:', error)
-        console.error('[handleCallAction] Error stack:', error.stack)
         setCallStatus(`Call failed: ${error.message}`)
-      } finally {
-        console.log('[handleCallAction] FINALLY block executed')
       }
     } else {
-      console.log('[handleCallAction] ELSE branch - setting generic status')
       setCallStatus(callActionMessages[action] ?? 'Action triggered.')
     }
-    
-    console.log('[handleCallAction] EXIT')
   }
 
   const handleCallStateChange = (newState) => {
-    console.log('[handleCallStateChange] Call state changed to:', newState)
     setCallIsActive(newState === 'active')
     if (newState === 'ended') {
       // Reset after a small delay to allow UI updates
