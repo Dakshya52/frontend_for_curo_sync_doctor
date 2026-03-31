@@ -1,11 +1,22 @@
 import { normalizeField, parseRedFlags, summaryDateFormatter } from './formatters.js'
 
 export default function SummaryCard({ summary, statusTone }) {
+  const patientAge = summary?.patientAge
+  const patientGender = summary?.patientGender
+  const hasDemographics = Boolean(patientAge || patientGender)
+
   return (
     <article className={`card summary-card tone-${statusTone}`}>
       <header>
         <p className="eyebrow">AI-generated patient summary</p>
         <h3>{summary ? normalizeField(summary.patientName) : 'Waiting for record…'}</h3>
+        {hasDemographics ? (
+          <p className="meta">
+            {patientAge ? `Age: ${normalizeField(patientAge)}` : null}
+            {patientAge && patientGender ? ' • ' : null}
+            {patientGender ? `Gender: ${normalizeField(patientGender)}` : null}
+          </p>
+        ) : null}
         <p className="meta">
           {summary?.collectedAt
             ? `Updated ${summaryDateFormatter.format(new Date(summary.collectedAt))}`
