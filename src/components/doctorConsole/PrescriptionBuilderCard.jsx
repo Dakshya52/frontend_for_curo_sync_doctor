@@ -9,13 +9,17 @@ export default function PrescriptionBuilderCard({
   isPrescriptionReady,
   callIsActive,
   notes,
+  reviewAfterDays,
   prescriptionStatus,
   onUpdateItemField,
   onAddRow,
   onRemoveRow,
   onNotesChange,
+  onReviewAfterDaysChange,
   onSend,
 }) {
+  const reviewAfterOptions = [1, 3, 5, 7, 10, 15, 30]
+
   return (
     <article className="card prescription-card">
       <header>
@@ -150,6 +154,17 @@ export default function PrescriptionBuilderCard({
         onChange={onNotesChange}
         placeholder="Hydrate well, report if fever crosses 101°F…"
       />
+
+      <label className="field-label" htmlFor="reviewAfterInput">
+        Review after
+      </label>
+      <select id="reviewAfterInput" value={reviewAfterDays} onChange={onReviewAfterDaysChange}>
+        {reviewAfterOptions.map((days) => (
+          <option key={days} value={days}>
+            {days} day{days === 1 ? '' : 's'}
+          </option>
+        ))}
+      </select>
 
       <div className="lookup-row">
         <button type="button" className="primary" onClick={onSend} disabled={!isPrescriptionReady}>

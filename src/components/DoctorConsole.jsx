@@ -90,6 +90,7 @@ export default function DoctorConsole() {
   })
   const [prescriptionItems, setPrescriptionItems] = useState([])
   const [notes, setNotes] = useState('')
+  const [reviewAfterDays, setReviewAfterDays] = useState(3)
   const [prescriptionStatus, setPrescriptionStatus] = useState({
     message: 'Select medicines to compile a prescription.',
     tone: 'idle',
@@ -274,7 +275,7 @@ export default function DoctorConsole() {
     [prescriptionItems],
   )
 
-  const isPrescriptionReady = Boolean(summary) && completedItems.length > 0 && callIsActive
+  const isPrescriptionReady = Boolean(summary) && completedItems.length > 0 && callIsActive && Number.isInteger(Number(reviewAfterDays))
   const maxItems = options.maxItemsPerPrescription ?? 1
   const canAddRow = prescriptionItems.length < maxItems
 
@@ -285,6 +286,7 @@ export default function DoctorConsole() {
       setPrescriptionItems([createEmptyPrescriptionItem(options)])
     }
     setNotes('')
+    setReviewAfterDays(3)
     setPrescriptionStatus({
       message: 'Select medicines to compile a prescription.',
       tone: 'idle',
@@ -622,13 +624,19 @@ export default function DoctorConsole() {
         }
       })
 
+      const normalizedReviewAfterDays = Number(reviewAfterDays)
+      if (!Number.isInteger(normalizedReviewAfterDays) || normalizedReviewAfterDays <= 0) {
+        throw new Error('Please select a valid “Review after” interval')
+      }
+
       const response = await authorizedFetch(`${API_BASE_URL}/api/prescriptions`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           intakeId: summary.id,
           items, 
-          notes 
+          notes,
+          reviewAfterDays: normalizedReviewAfterDays,
         }),
       })
       const payload = await response.json().catch(() => ({}))
@@ -715,11 +723,13 @@ export default function DoctorConsole() {
         isPrescriptionReady={isPrescriptionReady}
         callIsActive={callIsActive}
         notes={notes}
+        reviewAfterDays={reviewAfterDays}
         prescriptionStatus={prescriptionStatus}
         onUpdateItemField={updateItemField}
         onAddRow={addPrescriptionRow}
         onRemoveRow={removePrescriptionRow}
         onNotesChange={(event) => setNotes(event.target.value)}
+        onReviewAfterDaysChange={(event) => setReviewAfterDays(Number(event.target.value))}
         onSend={handleSendPrescription}
       />
 
