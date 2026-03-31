@@ -273,6 +273,15 @@ body.has-navbar .hero {
     width: 44px;
     height: 44px;
   }
+
+  .profile-actions {
+    flex-wrap: wrap;
+    justify-content: stretch;
+  }
+
+  .profile-actions button {
+    flex: 1 1 130px;
+  }
 }
 
 .doctor-panel {
@@ -634,6 +643,20 @@ button:not(:disabled):active {
   .summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
+  .prescription-row {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .prescription-row button.remove-medicine-btn {
+    margin-top: 0;
+    justify-self: end;
+  }
+
+  .prescription-row button {
+    margin-top: 0;
+  }
 }
 
 @keyframes drift {
@@ -994,6 +1017,20 @@ button {
     padding: 0.8rem 1.2rem;
   }
 
+  .lookup-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .lookup-row input {
+    min-width: 0;
+  }
+
+  .form-actions button {
+    width: 100%;
+    min-width: 0;
+  }
+
   .summary-focus,
   .summary-grid {
     grid-template-columns: 1fr;
@@ -1179,5 +1216,53 @@ button {
   .important-notice {
     padding: 1rem;
     font-size: 0.9rem;
+  }
+
+  .doctor-registration-form {
+    gap: 1.25rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .doctor-panel {
+    gap: 1rem;
+  }
+
+  .main-content-grid,
+  .controls-grid,
+  .summary-focus,
+  .summary-grid,
+  .call-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-toggle {
+    flex-direction: column;
+  }
+
+  .auth-toggle button {
+    width: 100%;
+  }
+
+  .inline-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.7rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .app-shell {
+    width: min(100%, 100% - 0.9rem);
+    padding: 1.35rem 0 2rem;
+  }
+
+  .card,
+  .registration-section {
+    padding: 1rem;
+  }
+
+  .profile-menu {
+    width: min(340px, calc(100vw - 1rem));
   }
 }

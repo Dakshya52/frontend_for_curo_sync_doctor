@@ -333,13 +333,16 @@ const styles = {
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 1000,
+    padding: '16px',
   },
   modal: {
     backgroundColor: '#fff',
     borderRadius: '12px',
-    padding: '24px',
-    width: '90%',
-    maxWidth: '500px',
+    padding: '18px',
+    width: '100%',
+    maxWidth: '520px',
+    maxHeight: 'calc(100vh - 32px)',
+    overflowY: 'auto',
     boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
   },
   header: {
@@ -347,7 +350,7 @@ const styles = {
   },
   title: {
     margin: '0 0 8px 0',
-    fontSize: '24px',
+    fontSize: 'clamp(20px, 5vw, 24px)',
     fontWeight: 'bold',
   },
   status: {
@@ -365,21 +368,21 @@ const styles = {
     textAlign: 'center',
   },
   avatar: {
-    margin: '40px 0',
+    margin: '28px 0',
   },
   avatarCircle: {
-    width: '120px',
-    height: '120px',
+    width: 'clamp(92px, 28vw, 120px)',
+    height: 'clamp(92px, 28vw, 120px)',
     borderRadius: '50%',
     backgroundColor: '#e3f2fd',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '48px',
+    fontSize: 'clamp(34px, 11vw, 48px)',
     margin: '0 auto 16px',
   },
   callInfo: {
-    fontSize: '18px',
+    fontSize: 'clamp(15px, 4.2vw, 18px)',
     color: '#333',
     margin: 0,
   },
@@ -388,6 +391,7 @@ const styles = {
     gap: '12px',
     justifyContent: 'center',
     marginTop: '32px',
+    flexWrap: 'wrap',
   },
   controlButton: {
     padding: '12px 24px',
@@ -399,6 +403,7 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '500',
     transition: 'background-color 0.2s',
+    flex: '1 1 180px',
   },
   mutedButton: {
     backgroundColor: '#f44336',
@@ -413,5 +418,6 @@ const styles = {
     cursor: 'pointer',
     fontWeight: '500',
     transition: 'background-color 0.2s',
+    flex: '1 1 180px',
   },
 }
