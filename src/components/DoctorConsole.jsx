@@ -97,6 +97,7 @@ export default function DoctorConsole() {
   })
   const [activeCall, setActiveCall] = useState(null)
   const [callIsActive, setCallIsActive] = useState(false)
+  const [callConnectedOnce, setCallConnectedOnce] = useState(false)
 
   useEffect(() => {
     writeStoredAuth(auth)
@@ -161,6 +162,7 @@ export default function DoctorConsole() {
     setSummary(null)
     setPrescriptionItems([])
     setNotes('')
+    setCallConnectedOnce(false)
     setPrescriptionStatus({ message: 'Select medicines to compile a prescription.', tone: 'idle' })
   }
 
@@ -297,7 +299,11 @@ export default function DoctorConsole() {
     [prescriptionItems],
   )
 
-  const isPrescriptionReady = Boolean(summary) && completedItems.length > 0 && callIsActive && Number.isInteger(Number(reviewAfterDays))
+  const isPrescriptionReady =
+    Boolean(summary) &&
+    completedItems.length > 0 &&
+    callConnectedOnce &&
+    Number.isInteger(Number(reviewAfterDays))
   const maxItems = options.maxItemsPerPrescription ?? 1
   const canAddRow = prescriptionItems.length < maxItems
 
@@ -332,6 +338,7 @@ export default function DoctorConsole() {
           if (prev && prev.status === 'closed') return prev
           return null
         })
+        setCallConnectedOnce(false)
         resetPrescriptionForm()
         setStatus({
           message: payload.message ?? 'No available patient intake records',
@@ -340,6 +347,7 @@ export default function DoctorConsole() {
         return
       }
       setSummary(payload.intake)
+      setCallConnectedOnce(false)
       resetPrescriptionForm()
       setStatus({
         message: `Reviewing ${payload.intake.patientName ?? payload.intake.callId}`,
@@ -609,6 +617,9 @@ export default function DoctorConsole() {
   const handleCallStateChange = (newState) => {
     console.log('[handleCallStateChange] Call state changed to:', newState)
     setCallIsActive(newState === 'active')
+    if (newState === 'active') {
+      setCallConnectedOnce(true)
+    }
     if (newState === 'ended') {
       // Reset after a small delay to allow UI updates
       setTimeout(() => setCallIsActive(false), 500)
@@ -651,9 +662,9 @@ export default function DoctorConsole() {
       setPrescriptionStatus({ message: 'This summary is missing an intake ID.', tone: 'error' })
       return
     }
-    if (!callIsActive) {
+    if (!callConnectedOnce) {
       setPrescriptionStatus({ 
-        message: 'Please start and connect the call with the patient before sending the prescription.', 
+        message: 'Please connect the call with the patient at least once before sending the prescription.', 
         tone: 'error' 
       })
       return
@@ -777,6 +788,7 @@ export default function DoctorConsole() {
         canAddRow={canAddRow}
         isPrescriptionReady={isPrescriptionReady}
         callIsActive={callIsActive}
+        callConnectedOnce={callConnectedOnce}
         notes={notes}
         reviewAfterDays={reviewAfterDays}
         prescriptionStatus={prescriptionStatus}

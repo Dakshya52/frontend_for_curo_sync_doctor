@@ -8,6 +8,7 @@ export default function PrescriptionBuilderCard({
   canAddRow,
   isPrescriptionReady,
   callIsActive,
+  callConnectedOnce,
   notes,
   reviewAfterDays,
   prescriptionStatus,
@@ -170,9 +171,9 @@ export default function PrescriptionBuilderCard({
         <button type="button" className="primary" onClick={onSend} disabled={!isPrescriptionReady}>
           Sign and Send prescription to patient
         </button>
-        {!callIsActive && (
+        {!callConnectedOnce && (
           <span className="muted" style={{ fontSize: '0.85rem', color: '#d9534f' }}>
-            ⓘ Call must be active to send prescription
+            ⓘ Connect with the patient once before sending prescription
           </span>
         )}
       </div>
